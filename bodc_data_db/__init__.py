@@ -2,14 +2,13 @@ import numpy as np
 import sqlite3 as sq
 import datetime as dt
 import subprocess as sp
-
+import gpxpy.geo as gpg
 
 SQL_UNIX_EPOCH = dt.datetime(1970,1,1,0,0,0)
 
-
 class db_tide():
 	def __init__(self, db_name):
-		if db_name[-3:] is not '.db':
+		if db_name[-3:] != '.db':
 			db_name += '.db'		
 		self.conn = sq.connect(db_name)
 		self.create_table_sql = {}
@@ -84,11 +83,16 @@ class db_tide():
 			qry_string += ' order by ' + order_by_str
 		return self.execute_sql(qry_string)
 
-	def get_tidal_series(self, station_tla, start_date_dt=None, end_date_dt=None):
+	def get_tidal_series(self, station_identifier, start_date_dt=None, end_date_dt=None):
 		select_str = "time_int, elevation, elevation_flag"
 		table_name = "gauge_obs as go"
 		inner_join_str = "sites as st on st.site_id = go.site_id"
-		where_str = "st.site_tla = '" + station_tla + "'"
+		
+		if isinstance(station_identifier, str):
+			where_str = "st.site_tla = '" + station_identifier + "'"
+		else:
+			where_str = "st.site_id = " + str(int(station_identifier))
+
 		if start_date_dt is not None:
 			start_sec = dt_to_epochsec(start_date_dt)
 			where_str += " and go.time_int >= " + str(start_sec)
@@ -102,11 +106,23 @@ class db_tide():
 		else:
 			return_data = np.asarray(return_data)
 			date_list = [epochsec_to_dt(this_time) for this_time in return_data[:,0]]
-			return date_list, return_data[:,1:]
+			return np.asarray(date_list), return_data[:,1:]
+
+	def get_nearest_gauge_id(self, lat, lon):
+		sites_lat_lon = np.asarray(self.select_qry('sites', None, 'site_id, lat, lon'))
+		min_dist = 9999999999999
+		closest_gauge_id = -999
+		for this_row in sites_lat_lon:
+			this_dist = gpg.haversine_distance(lat, lon, this_row[1], this_row[2])
+			if this_dist < min_dist:
+				min_dist = this_dist
+				closest_gauge_id = this_row[0]
+		return int(closest_gauge_id), min_dist
 
 	def close_conn(self):
 		self.conn.close()
 	
+
 
 class bodc_annual_tide_file():
 	def __init__(self, file_name, header_length = 11):
