@@ -7,5 +7,5 @@ setup(name='bodc_data_db',
 		author='mbe',
 		author_email='mbe@pml.ac.uk',
 		packages=['bodc_data_db'],
-		install_requires=['numpy', 'sqlite3', 'datetime', 'subprocess', 'gpxpy.geo'],
+		#install_requires=['numpy', 'sqlite3', 'datetime', 'subprocess', 'gpxpy.geo'],
 		zip_safe=False)
