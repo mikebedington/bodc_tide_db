@@ -68,7 +68,7 @@ class db_tide():
 		qs_string += ')'
 	
 		if no_rows > 1:
-			self.c.executemany('insert into ' + table_name + ' values ' + qs_string, data)
+			self.c.executemany('insert or ignore into ' + table_name + ' values ' + qs_string, data)
 		elif no_rows == 1:
 			self.c.execute('insert into ' + table_name + ' values ' + qs_string, data[0])
 		self.conn.commit()
@@ -201,7 +201,7 @@ def is_number(s):
 		return False
 	
 def clean_tide_file(file_name, header_length):
-	sed_str = "sed -i.bak '"+ str(header_length + 1) + ",$ {/^ [0-9]/!d}' " + file_name
+	sed_str = "sed -i '"+ str(header_length + 1) + ",$ {/^ *[0-9]/!d}' " + file_name
 	sp.call([sed_str], shell=True)	
 
 def dt_to_epochsec(time_to_convert):
